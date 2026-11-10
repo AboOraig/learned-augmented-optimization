@@ -26,33 +26,20 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 import argparse
-import math
 import random
 import sys
 import time
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 from pyscipopt import Branchrule, Model, SCIP_RESULT
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "solver"))
 from solver.common import apply_base_settings  # noqa: E402
+from solver.features import FAILED, candidate_columns, column_degrees, node_features, safe  # noqa: E402
 
-BASIS_CODE = {"lower": 0, "basic": 1, "upper": 2, "zero": 3}
 EPS = 1e-6
-FAILED = {}  # feature name -> number of times extraction raised (API missing in this version)
-
-
-def safe(name, fn, default=0.0):
-    """Call fn(); on any error return default and remember that this feature is unavailable."""
-    try:
-        value = fn()
-        return default if value is None else value
-    except Exception:
-        FAILED[name] = FAILED.get(name, 0) + 1
-        return default
 
 
 class StrongBranchingCollector(Branchrule):
@@ -69,66 +56,6 @@ class StrongBranchingCollector(Branchrule):
         self.sb_time = 0.0
         self.rows = []
 
-    # ------------------------------------------------------------------ features
-    def column_degrees(self):
-        """Number of LP rows each variable appears in. Computed once at the root: cuts are off,
-        so the LP rows are the problem's constraints and stay the same at every node."""
-        deg = {}
-        try:
-            for row in self.model.getLPRowsData():
-                for col in row.getCols():
-                    name = col.getVar().name
-                    deg[name] = deg.get(name, 0) + 1
-        except Exception:
-            deg = {}
-        if not deg:
-            FAILED["col_nnz"] = FAILED.get("col_nnz", 0) + 1
-        return deg
-
-    def node_features(self, ncands):
-        m = self.model
-        lpobj = m.getLPObjVal()
-        primal, dual = m.getPrimalbound(), m.getDualbound()
-        has_inc = primal < 1e19
-        gap = m.getGap() if has_inc else 1.0
-        if not math.isfinite(gap) or gap > 1.0:
-            gap = 1.0
-        variables = m.getVars()
-        n_fixed = sum(1 for v in variables if v.getLbLocal() >= v.getUbLocal() - EPS)
-        return {
-            "depth": m.getCurrentNode().getDepth(),
-            "n_nodes": m.getNNodes(),
-            "lpobj": lpobj,
-            "lpobj_rel_root": (lpobj - self.root_lpobj) / (abs(self.root_lpobj) + EPS),
-            "has_incumbent": int(has_inc),
-            "gap": gap,
-            "dual_rel_lp": (lpobj - dual) / (abs(lpobj) + EPS),
-            "frac_fixed": n_fixed / max(1, len(variables)),
-            "n_cands": ncands,
-        }
-
-    def candidate_features(self, var, lpval):
-        m = self.model
-        frac = lpval - math.floor(lpval)
-        col = var.getCol()
-        basis = safe("basis_status", lambda: BASIS_CODE.get(col.getBasisStatus(), 3), 3)
-        return {
-            "frac": frac,
-            "frac_dist": min(frac, 1.0 - frac),
-            "obj": var.getObj(),
-            "redcost": safe("redcost", lambda: m.getVarRedcost(var)),
-            "is_basic": int(basis == 1),
-            "at_upper": int(basis == 2),
-            "col_nnz": self.col_deg.get(var.name, 0),
-            "lb_loc": var.getLbLocal(),
-            "ub_loc": var.getUbLocal(),
-            "lb_glob": var.getLbGlobal(),
-            "ub_glob": var.getUbGlobal(),
-            "pc_down": safe("pc_down", lambda: m.getVarPseudocost(var, 0)),
-            "pc_up": safe("pc_up", lambda: m.getVarPseudocost(var, 1)),
-            "pc_score": safe("pc_score", lambda: m.getVarPseudocostScore(var, lpval)),
-        }
-
     # ------------------------------------------------------------------ branching callback
     def branchexeclp(self, allowaddcons):
         m = self.model
@@ -136,7 +63,7 @@ class StrongBranchingCollector(Branchrule):
         if self.root_lpobj is None:
             self.root_lpobj = m.getLPObjVal()
         if self.col_deg is None:
-            self.col_deg = self.column_degrees()
+            self.col_deg = column_degrees(m)
 
         is_root = m.getCurrentNode().getDepth() == 0
         take = is_root or self.rng.random() < self.sample_prob
@@ -147,9 +74,10 @@ class StrongBranchingCollector(Branchrule):
         if ncands > self.max_cands:
             idx = sorted(self.rng.sample(idx, self.max_cands))
 
-        node_feat = self.node_features(ncands)
+        node_feat = node_features(m, ncands, self.root_lpobj)
         node_feat["n_cands_sampled"] = len(idx)
-        feats = [self.candidate_features(cands[i], cand_vals[i]) for i in idx]
+        cols = candidate_columns(m, [cands[i] for i in idx], [cand_vals[i] for i in idx],
+                                 self.col_deg)
 
         # ---- strong branching on the chosen candidates
         lpobj = m.getLPObjVal()
@@ -187,7 +115,7 @@ class StrongBranchingCollector(Branchrule):
         for pos, gd, gu, score in scored:
             row = {"sample_id": sample_id}
             row.update(node_feat)
-            row.update(feats[pos])
+            row.update({name: float(values[pos]) for name, values in cols.items()})
             row.update({"var_name": cands[idx[pos]].name, "sb_gain_down": gd, "sb_gain_up": gu,
                         "sb_score": score, "is_best": int(pos == best_pos)})
             self.rows.append(row)
@@ -200,12 +128,10 @@ class StrongBranchingCollector(Branchrule):
 
 
 def finalize(rows):
-    """Long-format DataFrame with within-node ranks added (relative features are what generalise)."""
+    """Long-format DataFrame; adds the expert's rank within each node (the within-node ranks of
+    the features were already computed by features.py)."""
     df = pd.DataFrame(rows)
-    g = df.groupby("sample_id")
-    for col in ["frac_dist", "obj", "redcost", "pc_score", "col_nnz"]:
-        df[f"{col}_rank"] = g[col].rank(pct=True)
-    df["sb_rank"] = g["sb_score"].rank(ascending=False, method="first")
+    df["sb_rank"] = df.groupby("sample_id")["sb_score"].rank(ascending=False, method="first")
     return df
 
 

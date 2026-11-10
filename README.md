@@ -10,7 +10,7 @@ instances/   instance generators (+ generated .lp files)
 collect/     strong-branching data collection        (step 2)
 data/        collected samples (generated)
 train/       model training                          (step 3)
-solver/      common SCIP settings, baseline runner, learned branching rule (steps 1 and 4)
+solver/      SCIP settings, shared features, benchmark runner, learned branching rule (steps 1 and 4)
 analysis/    result tables, plots                    (step 5)
 ```
 
@@ -27,11 +27,11 @@ python instances/generate_setcover.py --split test     --n 50  --rows 500 --cols
 python instances/generate_setcover.py --split transfer --n 30  --rows 750 --cols 1000 --seed 2000
 
 # quick smoke test first
-python solver/baseline.py --instances instances/setcover/test --limit 3 \
+python solver/benchmark.py --instances instances/setcover/test --limit 3 \
     --rules relpscost mostinf fullstrong --time-limit 60 --out analysis/smoke.csv
 
 # full baseline
-python solver/baseline.py --instances instances/setcover/test \
+python solver/benchmark.py --instances instances/setcover/test \
     --rules relpscost pscost mostinf fullstrong --time-limit 300 --out analysis/baseline_test.csv
 ```
 
@@ -67,3 +67,17 @@ pseudocost score, most-fractional and random, then saves `train/model/model.txt`
 (the exact feature list the SCIP branching rule must reproduce in step 4).
 Offline metrics are only a proxy: validation is used for early stopping, and a good imitation of
 strong branching does not guarantee smaller trees or less time. Step 5 is the real test.
+
+## Step 4: the learned rule inside SCIP
+`solver/features.py` computes the features for BOTH data collection and the learned rule, so the model
+sees at solve time exactly what it saw in training. `solver/learned_branching.py` is the SCIP branching
+rule (scores all LP candidates with the trained model, branches on the best, times itself).
+`solver/benchmark.py` runs any SCIP rule or `learned` under identical settings.
+
+Smoke test on VALIDATION instances (keep the test set untouched until the final benchmark):
+```
+python solver/benchmark.py --instances instances/setcover/val --limit 5 --rules relpscost mostinf learned --model train/model --time-limit 60 --out analysis/smoke_learned.csv
+```
+Columns to look at: nodes, time_wall, gap, and for `learned` decisions / decision_time
+(decision_time / decisions = overhead per branching decision).
+If you change a feature in features.py you must re-collect the data and retrain.

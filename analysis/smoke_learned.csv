@@ -1,0 +1,16 @@
+instance,rule,seed,status,nodes,time_wall,time_scip,gap,primal,dual,decisions,decision_time
+sc_500r_1000c_500.lp,learned,0,optimal,2080,9.41,10.0,0.0,217.0,217.0,1040,1.39
+sc_500r_1000c_500.lp,mostinf,0,timelimit,19284,59.247,60.0,0.043229259815591795,217.0,208.00796944514227,,
+sc_500r_1000c_500.lp,relpscost,0,optimal,1301,11.598,11.0,0.0,217.0,217.0,,
+sc_500r_1000c_501.lp,learned,0,optimal,23,0.373,0.0,0.0,202.0,202.0,11,0.088
+sc_500r_1000c_501.lp,mostinf,0,optimal,103,0.838,1.0,0.0,202.0,202.0,,
+sc_500r_1000c_501.lp,relpscost,0,optimal,3,0.95,1.0,0.0,202.0,202.0,,
+sc_500r_1000c_502.lp,learned,0,optimal,165,1.25,1.0,0.0,204.0,204.0,82,0.13
+sc_500r_1000c_502.lp,mostinf,0,optimal,1067,4.188,4.0,0.0,204.0,204.0,,
+sc_500r_1000c_502.lp,relpscost,0,optimal,31,3.186,3.0,0.0,204.0,204.0,,
+sc_500r_1000c_503.lp,learned,0,optimal,141,1.285,2.0,0.0,208.0,208.0,70,0.118
+sc_500r_1000c_503.lp,mostinf,0,optimal,985,3.721,3.0,0.0,208.0,208.0,,
+sc_500r_1000c_503.lp,relpscost,0,optimal,23,2.835,3.0,0.0,208.0,208.0,,
+sc_500r_1000c_504.lp,learned,0,optimal,23,0.3,0.0,0.0,187.0,187.0,11,0.046
+sc_500r_1000c_504.lp,mostinf,0,optimal,53,0.305,1.0,0.0,187.0,187.0,,
+sc_500r_1000c_504.lp,relpscost,0,optimal,3,0.648,0.0,0.0,187.0,187.0,,
