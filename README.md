@@ -51,7 +51,7 @@ python collect/collect_strong_branching.py --instances instances/setcover/train 
 python instances/generate_setcover.py --split val --n 30 --rows 500 --cols 1000 --seed 500
 python collect/collect_strong_branching.py --instances instances/setcover/val --out data/samples/val --workers 4
 ```
-Choices to know about (they are part of the method, mention them in the write-up):
+Choices to know about (they are part of the method):
 - Nodes are sampled at random (root always, then 10% of nodes, at most 30 per instance).
 - At a sampled node strong branching runs on at most 60 randomly chosen LP candidates, not all of them.
 - The label is the candidate with the best product score of the two LP bound gains.
