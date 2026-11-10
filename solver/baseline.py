@@ -10,8 +10,7 @@ Rules are SCIP branching rule names:
     mostinf    most infeasible (= most fractional) branching
     fullstrong full strong branching (the expert we will imitate later)
 
-Settings follow the usual setup in the learning-to-branch literature (Gasse et al., 2019):
-presolve, restarts and heuristics off, so the branching rule is what drives the tree size.
+Solver settings live in solver/common.py (shared with the data collector and the learned rule).
 """
 import argparse
 import csv
@@ -19,20 +18,13 @@ from pathlib import Path
 
 from pyscipopt import Model
 
+from solver.common import apply_base_settings
+
 
 def configure(model, rule, time_limit, seed):
-    model.hideOutput()
+    apply_base_settings(model, time_limit, seed)
     # make the chosen rule the one SCIP calls first
     model.setIntParam(f"branching/{rule}/priority", 536870911)
-    # isolate the effect of branching
-    model.setPresolve(0)  # SCIP_PARAMSETTING.OFF
-    model.setIntParam("presolving/maxrounds", 0)
-    model.setIntParam("presolving/maxrestarts", 0)
-    model.setHeuristics(0)
-    model.setIntParam("separating/maxrounds", 0)      # no cuts at non-root nodes
-    model.setIntParam("separating/maxroundsroot", 0)  # no cuts at the root either
-    model.setRealParam("limits/time", time_limit)
-    model.setIntParam("randomization/randomseedshift", seed)
 
 
 def run(path, rule, time_limit, seed):
