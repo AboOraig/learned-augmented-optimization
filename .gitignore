@@ -1,7 +1,5 @@
 __pycache__/
 .venv/
 *.pyc
-instance/setcover/train/
-instance/setcover/test/
-instance/setcover/val/
+instances/setcover/
 data/samples/

@@ -64,11 +64,27 @@ class StrongBranchingCollector(Branchrule):
         self.follow_expert = follow_expert
         self.rng = random.Random(seed)
         self.root_lpobj = None
+        self.col_deg = None  # variable name -> number of LP rows it appears in (computed once)
         self.n_samples = 0
         self.sb_time = 0.0
         self.rows = []
 
     # ------------------------------------------------------------------ features
+    def column_degrees(self):
+        """Number of LP rows each variable appears in. Computed once at the root: cuts are off,
+        so the LP rows are the problem's constraints and stay the same at every node."""
+        deg = {}
+        try:
+            for row in self.model.getLPRowsData():
+                for col in row.getCols():
+                    name = col.getVar().name
+                    deg[name] = deg.get(name, 0) + 1
+        except Exception:
+            deg = {}
+        if not deg:
+            FAILED["col_nnz"] = FAILED.get("col_nnz", 0) + 1
+        return deg
+
     def node_features(self, ncands):
         m = self.model
         lpobj = m.getLPObjVal()
@@ -103,7 +119,7 @@ class StrongBranchingCollector(Branchrule):
             "redcost": safe("redcost", lambda: m.getVarRedcost(var)),
             "is_basic": int(basis == 1),
             "at_upper": int(basis == 2),
-            "col_nnz": safe("col_nnz", lambda: col.getNNonz()),
+            "col_nnz": self.col_deg.get(var.name, 0),
             "lb_loc": var.getLbLocal(),
             "ub_loc": var.getUbLocal(),
             "lb_glob": var.getLbGlobal(),
@@ -119,6 +135,8 @@ class StrongBranchingCollector(Branchrule):
         cands, cand_vals, _, ncands, _, _ = m.getLPBranchCands()
         if self.root_lpobj is None:
             self.root_lpobj = m.getLPObjVal()
+        if self.col_deg is None:
+            self.col_deg = self.column_degrees()
 
         is_root = m.getCurrentNode().getDepth() == 0
         take = is_root or self.rng.random() < self.sample_prob
