@@ -56,3 +56,14 @@ Choices to know about (they are part of the method):
 - At a sampled node strong branching runs on at most 60 randomly chosen LP candidates, not all of them.
 - The label is the candidate with the best product score of the two LP bound gains.
 - At sampled nodes the tree follows the expert's choice; elsewhere SCIP's reliability branching decides.
+
+## Step 3: train the model
+```
+python train/train_ranker.py --train data/samples/train --val data/samples/val --out train/model
+python train/train_ranker.py --objective binary --out train/model_binary   # optional comparison
+```
+Prints offline decision quality on validation nodes (top1 / top3 / ratio) for the learned model, SCIP's
+pseudocost score, most-fractional and random, then saves `train/model/model.txt` and `meta.json`
+(the exact feature list the SCIP branching rule must reproduce in step 4).
+Offline metrics are only a proxy: validation is used for early stopping, and a good imitation of
+strong branching does not guarantee smaller trees or less time. Step 5 is the real test.

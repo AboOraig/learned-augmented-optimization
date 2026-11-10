@@ -1,0 +1,29 @@
+{
+  "features": [
+    "depth",
+    "n_nodes",
+    "lpobj_rel_root",
+    "gap",
+    "dual_rel_lp",
+    "frac_fixed",
+    "n_cands",
+    "frac",
+    "frac_dist",
+    "obj",
+    "col_nnz",
+    "pc_down",
+    "pc_up",
+    "pc_score",
+    "frac_dist_rank",
+    "obj_rank",
+    "redcost_rank",
+    "pc_score_rank",
+    "col_nnz_rank"
+  ],
+  "objective": "lambdarank",
+  "val_metrics": {
+    "top1": 0.19240506329113924,
+    "top3": 0.40253164556962023,
+    "ratio": 0.598998450619423
+  }
+}
