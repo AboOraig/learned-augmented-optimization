@@ -1,0 +1,13 @@
+instance,rule,seed,status,nodes,time_wall,time_scip,gap,primal,dual,decisions,decision_time
+sc_750r_1000c_2000.lp,learned,0,optimal,3331,25.174,25.0,0.0,270.0,270.0,1690,2.282
+sc_750r_1000c_2000.lp,pscost,0,optimal,4248,24.152,24.0,0.0,270.0,270.0,,
+sc_750r_1000c_2000.lp,relpscost,0,optimal,2317,29.137,29.0,0.0,270.0,270.0,,
+sc_750r_1000c_2001.lp,learned,0,optimal,10854,75.698,75.0,0.0,276.0,276.0,5427,7.323
+sc_750r_1000c_2001.lp,pscost,0,optimal,15080,87.173,88.0,0.0,276.0,276.0,,
+sc_750r_1000c_2001.lp,relpscost,0,optimal,9893,82.246,82.0,0.0,276.0,276.0,,
+sc_750r_1000c_2002.lp,learned,0,optimal,389,4.161,4.0,0.0,234.0,234.0,202,0.303
+sc_750r_1000c_2002.lp,pscost,0,optimal,326,2.761,3.0,0.0,234.0,234.0,,
+sc_750r_1000c_2002.lp,relpscost,0,optimal,143,9.513,10.0,0.0,234.0,234.0,,
+sc_750r_1000c_2003.lp,learned,0,optimal,1213,10.561,11.0,0.0,276.0,276.0,606,0.85
+sc_750r_1000c_2003.lp,pscost,0,optimal,1767,11.57,11.0,0.0,276.0,276.0,,
+sc_750r_1000c_2003.lp,relpscost,0,optimal,1077,17.844,18.0,0.0,276.0,276.0,,

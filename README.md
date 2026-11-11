@@ -81,3 +81,15 @@ python solver/benchmark.py --instances instances/setcover/val --limit 5 --rules 
 Columns to look at: nodes, time_wall, gap, and for `learned` decisions / decision_time
 (decision_time / decisions = overhead per branching decision).
 If you change a feature in features.py you must re-collect the data and retrain.
+
+## Step 5: full benchmark and analysis
+Run on the TEST instances (never used for training or early stopping). Close other heavy programs, since
+parallel runs share the CPU. Try `--limit 5` first to estimate the duration.
+```
+python solver/benchmark.py --instances instances/setcover/test --rules relpscost pscost mostinf learned --model train/model --time-limit 120 --seeds 0 1 --workers 2 --out analysis/test.csv
+python analysis/analyze.py --results analysis/test.csv --out-dir analysis/report
+```
+The second command prints and saves `analysis/report/test_summary.csv|md` (the table view) and
+`test_profile.png` (performance profile + problems solved vs time budget). Conventions used (shifted
+geometric means, what counts as solved or fastest) are listed at the top of `analysis/analyze.py`; quote
+them in the write-up. Repeat with `instances/setcover/transfer` (larger instances) to study generalisation.
