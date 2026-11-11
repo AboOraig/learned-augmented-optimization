@@ -149,8 +149,11 @@ The gap difference between learned and pseudocost (2.83% vs 2.98%) was not teste
 **Computational overhead of the learned rule.** On the test set it spends 11.7% of its solve time on
 extra work: 9.9% extracting features (1.29 ms per decision) and 1.8% scoring with the model (0.23 ms).
 Feature extraction, done through many small SCIP calls from Python, is about 85% of the overhead.
-The overhead (about 8 to 12% across experiments) is what keeps a 23% node reduction versus pseudocost
-from turning into a time advantage.
+The overhead (about 8 to 12% across experiments) does not by itself explain why a ~20% node reduction
+versus pseudocost is not a time advantage: on the test set the learned rule's nodes cost roughly 40% more
+time (1.09 / 0.77), of which only a factor ~1.13 is the measured overhead; the rest is undiagnosed (LP
+iterations were not recorded). Removing the overhead entirely would, by this rough estimate, give about
+0.96 of pseudocost's time, i.e. at most a few percent faster.
 
 **Conclusions.** (1) The learned rule is clearly better than most-fractional and than reliability
 pseudocost branching under this protocol, mainly because reliability branching pays for expensive
@@ -162,4 +165,12 @@ larger instances. (3) The model generalises from 500-row to 750-row instances wi
 results say nothing about SCIP with default settings. Only 2 seeds; runs used 2 parallel workers, so timings
 carry some noise. Validation instances were used for early stopping. Training labels come from strong
 branching on a random subset of at most 60 candidates per node. The learned rule is implemented in Python;
-a native implementation would have a much lower per-decision cost.
+a native implementation would lower the per-decision cost, but by the estimate above that alone would not make it clearly faster than pseudocost.
+
+---
+
+# Paper
+`paper/main.tex` and `paper/references.bib` are a short technical report on this study. Copy the three result
+figures `test_profile.png`, `transfer_profile.png`, `transfer_10s_profile.png` from `analysis/report/` into
+`paper/figures/`, fill the red TODO markers (name, university, software versions, machine, repository URL),
+then compile with `latexmk -pdf main.tex` inside `paper/` (or upload the folder to Overleaf).
