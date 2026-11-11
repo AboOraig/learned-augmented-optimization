@@ -93,3 +93,73 @@ The second command prints and saves `analysis/report/test_summary.csv|md` (the t
 `test_profile.png` (performance profile + problems solved vs time budget). Conventions used (shifted
 geometric means, what counts as solved or fastest) are listed at the top of `analysis/analyze.py`; quote
 them in the write-up. Repeat with `instances/setcover/transfer` (larger instances) to study generalisation.
+
+---
+
+# Results
+
+All numbers below come from the CSV files in `analysis/` (produced by `solver/benchmark.py`, summarised by
+`analysis/analyze.py`; figures in `analysis/report/*_profile.png`).
+
+**Setup.** Random set-covering instances (500 rows x 1000 columns). 300 for training, 30 for validation
+(early stopping only), 50 for testing, plus 30 larger unseen instances (750 x 1000) to test generalisation.
+SCIP via PySCIPOpt with presolve, cuts and restarts off, primal heuristics on (see `solver/common.py`).
+Model: LightGBM LambdaRank trained to imitate strong branching on 3,869 sampled nodes (strong branching on
+at most 60 random candidates per node), 19 features. SGM = shifted geometric mean (1 s for time, 100 for nodes).
+Intervals are 95% bootstrap intervals resampling instances.
+
+**Offline imitation quality (30 validation instances, 395 nodes).** Picks the strong-branching choice in
+19.2% of nodes (top-3: 40.3%), against 15.7% (34.7%) for SCIP's pseudocost score, 4.8% for most-fractional and
+1.8% for random. The model mostly re-learns pseudocost information (top features: pseudocost rank,
+objective-coefficient rank, fractionality).
+
+**Test instances (50 instances x 2 seeds = 100 problems, 120 s limit).**
+
+| Rule | Solved | SGM time (s) | SGM nodes | Fastest |
+|---|---|---|---|---|
+| Learned | 100/100 | 2.38 | 297 | 46 |
+| Reliability pseudocost (SCIP default rule) | 100/100 | 4.41 | 132 | 3 |
+| Pseudocost | 100/100 | **2.21** | 388 | **78** |
+| Most fractional | 90/100 | 9.13 | 2104 | 6 |
+
+Learned / reliability: time ratio 0.52 [0.48, 0.57] (learned faster), 3.7x the nodes.
+Learned / pseudocost: time ratio 1.09 [1.04, 1.14] (pseudocost faster), 0.77x the nodes.
+
+**Larger unseen instances (30 instances x 2 seeds = 60 problems, 120 s limit).**
+
+| Rule | Solved | SGM time (s) | SGM nodes | Fastest |
+|---|---|---|---|---|
+| Learned | 60/60 | 10.05 | 1138 | 36 |
+| Reliability pseudocost | 60/60 | 15.93 | 634 | 5 |
+| Pseudocost | 60/60 | 9.85 | 1420 | 41 |
+
+Learned / reliability: 0.61 [0.54, 0.68], 2.1x the nodes. Learned / pseudocost: 1.03 [0.99, 1.08]
+(no clear difference), 0.79x the nodes.
+
+**Tight time budget (larger instances, 10 s, seed 0; optimality gap is only informative here).**
+
+| Rule | Solved | Avg gap, all runs | Avg gap, unsolved runs |
+|---|---|---|---|
+| Learned | 16/30 | 2.83% | 6.06% |
+| Reliability pseudocost | 9/30 | 6.15% | 8.78% |
+| Pseudocost | 16/30 | 2.98% | 6.40% |
+
+The gap difference between learned and pseudocost (2.83% vs 2.98%) was not tested and should not be read as a win.
+
+**Computational overhead of the learned rule.** On the test set it spends 11.7% of its solve time on
+extra work: 9.9% extracting features (1.29 ms per decision) and 1.8% scoring with the model (0.23 ms).
+Feature extraction, done through many small SCIP calls from Python, is about 85% of the overhead.
+The overhead (about 8 to 12% across experiments) is what keeps a 23% node reduction versus pseudocost
+from turning into a time advantage.
+
+**Conclusions.** (1) The learned rule is clearly better than most-fractional and than reliability
+pseudocost branching under this protocol, mainly because reliability branching pays for expensive
+strong-branching probes. (2) Compared with plain pseudocost it builds smaller trees (about 20% fewer nodes,
+also on larger unseen instances) but is not faster: it is slower on the test set and indistinguishable on the
+larger instances. (3) The model generalises from 500-row to 750-row instances without retraining.
+
+**Limitations.** One problem class (set covering). The protocol disables cuts, presolve and restarts, so the
+results say nothing about SCIP with default settings. Only 2 seeds; runs used 2 parallel workers, so timings
+carry some noise. Validation instances were used for early stopping. Training labels come from strong
+branching on a random subset of at most 60 candidates per node. The learned rule is implemented in Python;
+a native implementation would have a much lower per-decision cost.
