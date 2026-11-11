@@ -4,6 +4,8 @@ Learn a branching policy that imitates strong branching using cheap features fro
 current B&B state, plug it into SCIP (PySCIPOpt), and compare it with classical rules
 (most fractional, pseudocost, reliability pseudocost) on unseen instances.
 
+**Results:** [Learned_Augmented_Optimization.pdf](paper/Learned_Augmented_Optimization.pdf) (source: [`paper/main.tex`](paper/main.tex)).
+
 ## Layout
 ```
 instances/   instance generators (+ generated .lp files)
@@ -12,6 +14,7 @@ data/        collected samples (generated)
 train/       model training                          (step 3)
 solver/      SCIP settings, shared features, benchmark runner, learned branching rule (steps 1 and 4)
 analysis/    result tables, plots                    (step 5)
+paper/       short technical report on this study.
 ```
 
 ## Setup
@@ -168,9 +171,3 @@ branching on a random subset of at most 60 candidates per node. The learned rule
 a native implementation would lower the per-decision cost, but by the estimate above that alone would not make it clearly faster than pseudocost.
 
 ---
-
-# Paper
-`paper/main.tex` and `paper/references.bib` are a short technical report on this study. Copy the three result
-figures `test_profile.png`, `transfer_profile.png`, `transfer_10s_profile.png` from `analysis/report/` into
-`paper/figures/`, fill the red TODO markers (name, university, software versions, machine, repository URL),
-then compile with `latexmk -pdf main.tex` inside `paper/` (or upload the folder to Overleaf).
