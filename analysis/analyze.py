@@ -68,6 +68,8 @@ def tables(df, rules, min_time):
     for r in rules:
         d = df[df["rule"] == r]
         gaps = d.loc[~d["solved"], "gap"].replace([np.inf, -np.inf], np.nan).dropna()
+        # gap over ALL runs: solved = 0, no primal bound yet (inf) = 100%, capped at 100%
+        gap_all = d["gap"].where(~d["solved"], 0.0).replace([np.inf, -np.inf], 1.0).fillna(1.0).clip(upper=1.0)
         rows.append({
             "rule": r,
             "solved": f"{int(solved[r].sum())}/{len(solved)}",
@@ -79,6 +81,7 @@ def tables(df, rules, min_time):
                 round(sgm(nodes.loc[common, r], 100.0)) if common.any() else np.nan,
             "fastest (within 5%)": int((t_solved[r] <= 1.05 * best).sum()),
             "avg gap on unsolved (%)": round(100 * gaps.mean(), 2) if len(gaps) else np.nan,
+            "avg gap, all runs (%)": round(100 * gap_all.mean(), 2),
         })
     return pd.DataFrame(rows), t_eff, t_solved, best, solved, nodes, common
 
@@ -111,10 +114,18 @@ def overhead_line(df):
     d = df[df["rule"] == "learned"]
     if d.empty or d["decisions"].isna().all():
         return None
-    share = d["decision_time"].sum() / d["time_wall"].sum()
-    ms = 1000 * d["decision_time"].sum() / d["decisions"].sum()
-    return (f"Learned-rule overhead: {100 * share:.1f}% of its total solve time is spent inside the "
-            f"rule (feature extraction + model), {ms:.2f} ms per branching decision.")
+    total, dec = d["time_wall"].sum(), d["decisions"].sum()
+    if "feature_time" in d and d["feature_time"].notna().any():
+        f, m = d["feature_time"].sum(), d["predict_time"].sum()
+        rest = d["decision_time"].sum() - f - m
+        return (f"Learned-rule overhead (share of its total solve time): features {100 * f / total:.1f}%, "
+                f"model {100 * m / total:.1f}% = {100 * (f + m) / total:.1f}% extra cost vs a classical rule; "
+                f"{1000 * f / dec:.2f} ms features + {1000 * m / dec:.2f} ms model per decision. "
+                f"(Rest of the callback, e.g. SCIP's branchVar, {100 * rest / total:.1f}%: every rule pays it.)")
+    share = d["decision_time"].sum() / total
+    return (f"Learned-rule callback: {100 * share:.1f}% of its total solve time is spent inside the rule "
+            f"(feature extraction + model + SCIP's branchVar), {1000 * d['decision_time'].sum() / dec:.2f} ms "
+            f"per decision. Re-run the learned rule with the current benchmark.py for the split.")
 
 
 def markdown(table):

@@ -31,27 +31,34 @@ class LearnedBranchrule(Branchrule):
         self.root_lpobj = None
         self.col_deg = None
         self.n_decisions = 0
-        self.decision_time = 0.0
+        self.decision_time = 0.0  # whole callback, incl. SCIP's own branchVar and bookkeeping
+        self.feature_time = 0.0   # overhead of the learned policy: feature extraction ...
+        self.predict_time = 0.0   # ... and model scoring (what a classical rule does not pay)
 
     def branchexeclp(self, allowaddcons):
         t0 = time.perf_counter()
         m = self.model
         cands, vals, _, ncands, _, _ = m.getLPBranchCands()
         cands, vals = cands[:ncands], vals[:ncands]
-        if self.root_lpobj is None:  # the rule runs at the root first
-            self.root_lpobj = m.getLPObjVal()
-        if self.col_deg is None:
-            self.col_deg = column_degrees(m)
-
         if ncands == 1:
             best = 0
+            if self.root_lpobj is None:
+                self.root_lpobj = m.getLPObjVal()
         else:
+            t1 = time.perf_counter()
+            if self.root_lpobj is None:  # the rule runs at the root first
+                self.root_lpobj = m.getLPObjVal()
+            if self.col_deg is None:
+                self.col_deg = column_degrees(m)
             node = node_features(m, ncands, self.root_lpobj, self.needed)
             cols = candidate_columns(m, cands, vals, self.col_deg, self.needed)
             X = np.empty((ncands, len(self.features)))
             for j, name in enumerate(self.features):
                 X[:, j] = cols[name] if name in cols else node[name]
+            t2 = time.perf_counter()
             best = int(np.argmax(self.booster.predict(X, num_threads=1)))
+            self.feature_time += t2 - t1
+            self.predict_time += time.perf_counter() - t2
 
         m.branchVar(cands[best])
         self.n_decisions += 1

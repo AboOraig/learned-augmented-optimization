@@ -53,6 +53,8 @@ def run(path, rule, seed, time_limit, model_dir):
         "gap": model.getGap(), "primal": model.getPrimalbound(), "dual": model.getDualbound(),
         "decisions": learned.n_decisions if learned else "",
         "decision_time": round(learned.decision_time, 3) if learned else "",
+        "feature_time": round(learned.feature_time, 3) if learned else "",
+        "predict_time": round(learned.predict_time, 3) if learned else "",
     }
 
 

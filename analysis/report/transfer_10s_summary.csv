@@ -1,0 +1,4 @@
+rule,solved,SGM time (s),SGM nodes,"SGM time, commonly solved (n=9)","SGM nodes, commonly solved",fastest (within 5%),avg gap on unsolved (%),"avg gap, all runs (%)"
+learned,16/30,6.71,548,3.15,258,6,6.06,2.83
+relpscost,9/30,8.73,56,6.86,79,0,8.78,6.15
+pscost,16/30,6.28,674,2.77,336,13,6.4,2.98
