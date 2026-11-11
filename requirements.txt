@@ -1,7 +1,7 @@
-pyscipopt
-numpy
-scipy
-pandas
-matplotlib
-lightgbm
-scikit-learn
+pyscipopt==6.3.0
+lightgbm==4.7.0
+numpy==2.1.1
+pandas==2.2.3
+scipy==1.15.2
+matplotlib==3.10.0
+scikit-learn==1.6.1

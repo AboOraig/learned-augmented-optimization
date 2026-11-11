@@ -1,5 +1,7 @@
 # Learning-Augmented Branch-and-Bound for Mixed-Integer Optimization
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 Learn a branching policy that imitates strong branching using cheap features from the
 current B&B state, plug it into SCIP (PySCIPOpt), and compare it with classical rules
 (most fractional, pseudocost, reliability pseudocost) on unseen instances.
